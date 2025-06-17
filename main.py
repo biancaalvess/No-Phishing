@@ -2,181 +2,13 @@ import re
 import tldextract
 import requests
 import json
-from flask import Flask, request, render_template
+from flask import Flask, render_template_string, request, jsonify, render_template
+from flask_cors import CORS
 
 app = Flask(__name__)
+CORS(app)
 
-# Rota principal para exibir o formulário
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-# Rota para processar a análise de mensagens
-@app.route('/analisar', methods=['POST'])
-def analisar():
-    mensagem = request.form.get('mensagem')
-    if not mensagem or mensagem.strip() == '':
-        return render_template('resultado.html', erro="Por favor, insira uma mensagem para análise.", suspeitas=[], dominios_suspeitos=[], mensagem="")
-
-    palavras_suspeitas = processar_palavras_suspeitas_arquivo()
-    urls_suspeitas = obter_urls_suspeitas_do_urlhaus()
-    suspeitas = analisar_mensagens(mensagem, palavras_suspeitas)
-    links = detectar_links(mensagem)
-    dominios_suspeitos = verificar_urls_suspeitas(links, urls_suspeitas, DOMINIOS_LEGITIMOS)
-    
-    return render_template('resultado.html', suspeitas=suspeitas, dominios_suspeitos=dominios_suspeitos, mensagem=mensagem, erro=None)
-
-# Manipuladores de erros
-@app.errorhandler(404)
-def page_not_found(e):
-    return "Página não encontrada", 404
-
-@app.errorhandler(500)
-def server_error(e):
-    return "Erro interno do servidor", 500
-
-# Função para calcular a distância de Levenshtein
-def distancia_levenshtein(s1, s2):
-    if len(s1) < len(s2):
-        return distancia_levenshtein(s2, s1)
-
-    if len(s2) == 0:
-        return len(s1)
-
-    linha_anterior = range(len(s2) + 1)
-    for i, c1 in enumerate(s1):
-        linha_atual = [i + 1]
-        for j, c2 in enumerate(s2):
-            insercoes = linha_anterior[j + 1] + 1
-            delecoes = linha_atual[j] + 1
-            substituicoes = linha_anterior[j] + (c1 != c2)
-            linha_atual.append(min(insercoes, delecoes, substituicoes))
-        linha_anterior = linha_atual
-    return linha_anterior[-1]
-
-# Função para carregar palavras suspeitas de um arquivo
-def processar_palavras_suspeitas_arquivo():
-    try:
-        with open('phishing-keywords.txt', 'r', encoding="utf-8") as arquivo:
-            palavras = arquivo.read().splitlines()
-        return palavras
-    except FileNotFoundError:
-        print("Aviso: O arquivo 'phishing-keywords.txt' não foi encontrado. As palavras suspeitas não serão verificadas via arquivo.")
-        return []
-
-# Função para obter URLs suspeitas da API do URLhaus
-def obter_urls_suspeitas_do_urlhaus():
-    url = "https://urlhaus-api.abuse.ch/v1/urls/recent/"
-    headers = {"User-Agent": "PhishingDetector/1.0 (npmstartteste@gmail.com)"}
-
-    try:
-        print("Tentando obter URLs suspeitas do URLhaus...")
-        response = requests.get(url, headers=headers, timeout=30)
-        response.raise_for_status()
-
-        data = response.json()
-        urls = [item['url'] for item in data.get('urls', []) if 'url' in item]
-
-        print(f"Obtidas {len(urls)} URLs suspeitas do URLhaus.")
-        return urls
-    except requests.exceptions.Timeout:
-        print("Erro: Tempo limite excedido ao conectar com a API do URLhaus. Verifique sua conexão.")
-        return []
-    except requests.exceptions.RequestException as e:
-        print(f"Erro de requisição ao buscar URLs do URLhaus: {e}")
-        print("Verifique sua conexão com a internet ou se o serviço URLhaus está disponível.")
-        return []
-    except json.JSONDecodeError as e:
-        print(f"Erro de decodificação JSON da API do URLhaus: {e}")
-        print(f"Conteúdo recebido (primeiros 500 chars): '{response.text[:500]}'")
-        print("Isso geralmente indica que a API não retornou JSON válido.")
-        return []
-    except KeyError:
-        print("Erro: Estrutura JSON inesperada da API do URLhaus. A chave 'urls' não foi encontrada.")
-        return []
-
-# Função para analisar mensagens em busca de palavras suspeitas
-def analisar_mensagens(mensagem, palavras_suspeitas):
-    mensagem = mensagem.lower()
-    encontradas = []
-
-    for palavra in palavras_suspeitas:
-        if re.search(rf'\b{re.escape(palavra)}\b', mensagem):
-            encontradas.append(palavra)
-    return encontradas
-
-# Função para detectar links em uma mensagem
-def detectar_links(mensagem):
-    padrao_url = r'https?://[\w\.-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?|\bwww\.[\w\.-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?'
-    return re.findall(padrao_url, mensagem.lower())
-
-# Função para extrair o domínio completo de um link
-def extrair_dominio_completo(link):
-    extraido = tldextract.extract(link)
-    partes = [p for p in [extraido.subdomain, extraido.domain, extraido.suffix] if p]
-    return '.'.join(partes)
-
-# Função para verificar URLs suspeitas
-def verificar_urls_suspeitas(links, lista_suspeita, dominios_legitimos):
-    dominios_suspeitos_encontrados = []
-    lista_suspeita_set = set(lista_suspeita)
-    dominios_legitimos_set = set(dominios_legitimos)
-
-    for link in links:
-        dominio_completo = extrair_dominio_completo(link)
-        extraido = tldextract.extract(link)
-        nome_dominio_atual = extraido.domain
-        sufixo_atual = extraido.suffix
-
-        # 1. Verificação na lista de URLs suspeitas (do URLhaus ou arquivo)
-        if dominio_completo in lista_suspeita_set:
-            dominios_suspeitos_encontrados.append(dominio_completo)
-            continue
-
-        # 2. Verificação de subdomínios maliciosos (e.g., login.malicioso.com)
-        for suspeito_base in lista_suspeita_set:
-            if dominio_completo.endswith(suspeito_base) and len(dominio_completo) > len(suspeito_base):
-                dominios_suspeitos_encontrados.append(dominio_completo)
-                break
-
-        # 3. Verificação de typosquatting e subdomínios suspeitos
-        for legit_dominio_completo in dominios_legitimos_set:
-            legit_ext = tldextract.extract(legit_dominio_completo)
-            nome_dominio_legitimo = legit_ext.domain
-            sufixo_legitimo = legit_ext.suffix
-
-            distancia = distancia_levenshtein(nome_dominio_atual, nome_dominio_legitimo)
-            if distancia > 0 and (distancia == 1 or (distancia == 2 and len(nome_dominio_legitimo) > 6)):
-                dominios_suspeitos_encontrados.append(dominio_completo)
-                break
-            
-            if any(nome_dominio_atual.count(char) > nome_dominio_legitimo.count(char) for char in set(nome_dominio_atual)):
-                dominios_suspeitos_encontrados.append(dominio_completo)
-                break
-
-            # Detecção de Typosquatting por Adição/Substituição de Caracteres e Hífen/Underscore
-            if nome_dominio_legitimo in nome_dominio_atual and nome_dominio_atual != nome_dominio_legitimo:
-                if '-' in nome_dominio_atual or '_' in nome_dominio_atual:
-                    dominios_suspeitos_encontrados.append(dominio_completo)
-                    break
-                if any(nome_dominio_atual.count(char) > 2 for char in set(nome_dominio_atual)) and \
-                   abs(len(nome_dominio_atual) - len(nome_dominio_legitimo)) <= 2:
-                    dominios_suspeitos_encontrados.append(dominio_completo)
-                    break
-                adicoes_phishing_comuns = ["login", "seguranca", "fatura", "atualiza", "verify", "secure", "bank", "premios", "rewards", "promo", "app", "online", "acesso", "cliente"]
-                if any(add in nome_dominio_atual for add in adicoes_phishing_comuns):
-                    dominios_suspeitos_encontrados.append(dominio_completo)
-                    break
-
-        # 4. Detecção de Subdomínios Suspeitos (mesmo que o domínio principal não seja um typosquatting)
-        if extraido.subdomain and extraido.subdomain.lower() != 'www':
-            palavras_chave_subdominio_suspeito = ["login", "seguranca", "fatura", "acesso", "confirmar", "atualizar", "premios", "ganho", "secure", "verify", "suporte", "app", "online", "portal"]
-            if any(palavra in extraido.subdomain for palavra in palavras_chave_subdominio_suspeito):
-                dominios_suspeitos_encontrados.append(dominio_completo)
-
-    return list(set(dominios_suspeitos_encontrados))
-
-# Lista de domínios legítimos
+# Lista de domínios legítimos (unificada)
 DOMINIOS_LEGITIMOS = [
     "itau.com.br", "bradesco.com.br", "santander.com.br", "bancodobrasil.com.br", "caixa.gov.br",
     "mercadolivre.com.br", "google.com", "google.com.br", "facebook.com", "facebook.com.br",
@@ -192,58 +24,212 @@ DOMINIOS_LEGITIMOS = [
     "adobe.com", "wix.com", "wordpress.com", "notion.so", "openai.com", "gupy.com", "indeed.com"
 ]
 
-# Modo console para testes (opcional)
-def modo_console():
-    palavras_suspeitas = processar_palavras_suspeitas_arquivo()
-    urls_suspeitas = obter_urls_suspeitas_do_urlhaus()
+# Variáveis globais para carregar uma vez
+palavras_suspeitas_carregadas = []
+urls_suspeitas_carregadas = []
 
-    if not urls_suspeitas:
-        print("\nNão foi possível carregar URLs suspeitas da API do URLhaus. Tentando carregar de 'urls_suspeitas.txt' como fallback.")
-        try:
-            with open('urls_suspeitas.txt', 'r', encoding="utf-8") as f:
-                urls_suspeitas = f.read().splitlines()
-            if urls_suspeitas:
-                print(f"Carregadas {len(urls_suspeitas)} URLs suspeitas de 'urls_suspeitas.txt'.")
-            else:
-                print("O arquivo 'urls_suspeitas.txt' está vazio ou não pôde ser lido. A verificação de URLs será limitada.")
-        except FileNotFoundError:
-            print("Erro: O arquivo 'urls_suspeitas.txt' não foi encontrado. Nenhuma URL suspeita será verificada via arquivo.")
-            urls_suspeitas = []
+carregado = False
 
-    if not palavras_suspeitas and not urls_suspeitas:
-        print("\nNão foi possível carregar nenhuma lista de palavras ou URLs suspeitas. O programa não pode verificar efetivamente.")
-        print("Certifique-se de ter 'phishing-keywords.txt' e/ou que a conexão com URLhaus esteja a funcionar.")
-        return
+@app.before_request
+def carregar_dados():
+    global carregado, palavras_suspeitas_carregadas, urls_suspeitas_carregadas
+    if not carregado:
+        carregado = True
 
-    print("\n--- Analisador de Phishing ---")
-    print("Digite ou cole a mensagem para ser verificada (para sair, digite 'sair'):")
+    if not palavras_suspeitas_carregadas:
+        palavras_suspeitas_carregadas = processar_palavras_suspeitas_arquivo()
+        print(f"Palavras suspeitas carregadas: {len(palavras_suspeitas_carregadas)}")
 
-    while True:
-        mensagem = input("> ")
-        if mensagem.lower() == 'sair':
-            break
+    if not urls_suspeitas_carregadas:
+        urls_suspeitas_carregadas = obter_urls_suspeitas_do_urlhaus()
+        if not urls_suspeitas_carregadas:
+            try:
+                with open('urls_suspeitas.txt', 'r', encoding="utf-8") as f:
+                    urls_suspeitas_carregadas = f.read().splitlines()
+                print(f"URLs suspeitas carregadas do arquivo fallback: {len(urls_suspeitas_carregadas)}")
+            except FileNotFoundError:
+                print("Arquivo 'urls_suspeitas.txt' não encontrado, não carregou URLs suspeitas.")
 
-        suspeitas = analisar_mensagens(mensagem, palavras_suspeitas)
-        links = detectar_links(mensagem)
-        dominios_suspeitos_encontrados = verificar_urls_suspeitas(links, urls_suspeitas, DOMINIOS_LEGITIMOS)
+@app.route('/')
+def index():
+    with open('index.html', 'r', encoding='utf-8') as f:
+        page = f.read()
+    return render_template_string(page)
 
-        if suspeitas or dominios_suspeitos_encontrados:
-            print("\n---")
-            print("❗ **ALERTA: Possível golpe detetado!**")
-            print("---")
-            if suspeitas:
-                print("Palavras suspeitas encontradas:")
-                for palavra in suspeitas:
-                    print(f" - **{palavra}**")
-            if dominios_suspeitos_encontrados:
-                print("\nDomínios suspeitos encontrados:")
-                for dominio in dominios_suspeitos_encontrados:
-                    print(f" - **{dominio}**")
-        else:
-            print("\n---")
-            print("✅ Nenhum indício forte de golpe encontrado nesta mensagem. Mantenha-se atento!")
-            print("---")
-        print("\nDigite outra mensagem ou 'sair' para encerrar:")
+@app.route('/analisar', methods=['POST'])
+def analisar():
+    mensagem = request.form.get('mensagem', '')
+    if not mensagem.strip():
+        return render_template('resultado.html', erro="Por favor, insira uma mensagem para análise.", suspeitas=[], dominios_suspeitos=[], mensagem="")
+
+    suspeitas = analisar_mensagens(mensagem, palavras_suspeitas_carregadas)
+    links = detectar_links(mensagem)
+    dominios_suspeitos = verificar_urls_suspeitas(links, urls_suspeitas_carregadas, DOMINIOS_LEGITIMOS)
+
+    return render_template('resultado.html', suspeitas=suspeitas, dominios_suspeitos=dominios_suspeitos, mensagem=mensagem, erro=None)
+
+@app.route('/verificar', methods=['POST'])
+def verificar_api():
+    data = request.get_json()
+    mensagem = data.get('mensagem', '') if data else ''
+
+    if not mensagem:
+        return jsonify({"erro": "Mensagem não fornecida"}), 400
+
+    suspeitas = analisar_mensagens(mensagem, palavras_suspeitas_carregadas)
+    links = detectar_links(mensagem)
+    dominios_suspeitos = verificar_urls_suspeitas(links, urls_suspeitas_carregadas, DOMINIOS_LEGITIMOS)
+
+    e_golpe = bool(suspeitas or dominios_suspeitos)
+
+    resposta = {
+        "e_golpe": e_golpe,
+        "palavras_suspeitas": suspeitas,
+        "dominios_suspeitos": dominios_suspeitos,
+        "mensagem_original": mensagem
+    }
+    return jsonify(resposta)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return "Página não encontrada", 404
+
+@app.errorhandler(500)
+def server_error(e):
+    return "Erro interno do servidor", 500
+
+# --- Funções auxiliares unificadas abaixo ---
+
+def distancia_levenshtein(s1, s2):
+    if len(s1) < len(s2):
+        return distancia_levenshtein(s2, s1)
+    if len(s2) == 0:
+        return len(s1)
+    linha_anterior = range(len(s2) + 1)
+    for i, c1 in enumerate(s1):
+        linha_atual = [i + 1]
+        for j, c2 in enumerate(s2):
+            insercoes = linha_anterior[j + 1] + 1
+            delecoes = linha_atual[j] + 1
+            substituicoes = linha_anterior[j] + (c1 != c2)
+            linha_atual.append(min(insercoes, delecoes, substituicoes))
+        linha_anterior = linha_atual
+    return linha_anterior[-1]
+
+def processar_palavras_suspeitas_arquivo():
+    try:
+        with open('phishing-keywords.txt', 'r', encoding="utf-8") as arquivo:
+            palavras = arquivo.read().splitlines()
+        return palavras
+    except FileNotFoundError:
+        print("Aviso: O arquivo 'phishing-keywords.txt' não foi encontrado.")
+        return []
+
+def obter_urls_suspeitas_do_urlhaus():
+    url = "https://urlhaus-api.abuse.ch/v1/urls/recent/"
+    headers = {"User-Agent": "PhishingDetector/1.0 (npmstartteste@gmail.com)"}
+
+    try:
+        print("Tentando obter URLs suspeitas do URLhaus...")
+        response = requests.get(url, headers=headers, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        urls = [item['url'] for item in data.get('urls', []) if 'url' in item]
+        print(f"Obtidas {len(urls)} URLs suspeitas do URLhaus.")
+        return urls
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao obter URLs do URLhaus: {e}")
+        return []
+    except json.JSONDecodeError:
+        print("Erro de JSON na resposta do URLhaus.")
+        return []
+
+def analisar_mensagens(mensagem, palavras_suspeitas):
+    mensagem = mensagem.lower()
+    encontradas = []
+    for palavra in palavras_suspeitas:
+        if re.search(rf'\b{re.escape(palavra)}\b', mensagem):
+            encontradas.append(palavra)
+    return encontradas
+
+def detectar_links(mensagem):
+    padrao_url = r'https?://[\w\.-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?|\bwww\.[\w\.-]+\.[a-zA-Z]{2,}(?:/[^\s]*)?'
+    return re.findall(padrao_url, mensagem.lower())
+
+def extrair_dominio_completo(link):
+    extraido = tldextract.extract(link)
+    partes = [p for p in [extraido.subdomain, extraido.domain, extraido.suffix] if p]
+    return '.'.join(partes)
+
+def verificar_urls_suspeitas(links, lista_suspeita, dominios_legitimos):
+    dominios_suspeitos_encontrados = []
+    lista_suspeita_set = set(lista_suspeita)
+    dominios_legitimos_set = set(dominios_legitimos)
+
+    for link in links:
+        dominio_completo = extrair_dominio_completo(link)
+        extraido = tldextract.extract(link)
+        nome_dominio_atual = extraido.domain.lower()
+        sufixo_atual = extraido.suffix.lower()
+
+        # Se domínio completo está explicitamente na lista suspeita
+        if dominio_completo in lista_suspeita_set:
+            dominios_suspeitos_encontrados.append(dominio_completo)
+            continue
+
+        # Checar se domínio termina com algum domínio suspeito conhecido (exemplo subdomínio malicioso)
+        for suspeito_base in lista_suspeita_set:
+            if dominio_completo.endswith(suspeito_base) and len(dominio_completo) > len(suspeito_base):
+                dominios_suspeitos_encontrados.append(dominio_completo)
+                break
+
+        # Checar domínios muito parecidos com domínios legítimos usando Levenshtein e outras heurísticas
+        for legit_dominio_completo in dominios_legitimos_set:
+            legit_ext = tldextract.extract(legit_dominio_completo)
+            nome_dominio_legitimo = legit_ext.domain.lower()
+            sufixo_legitimo = legit_ext.suffix.lower()
+
+            # Só comparar domínios com mesmo sufixo (ex: ambos .com, .com.br)
+            if sufixo_atual != sufixo_legitimo:
+                continue
+
+            distancia = distancia_levenshtein(nome_dominio_atual, nome_dominio_legitimo)
+
+            # Ajuste: considerar como suspeito se distância 1 ou 2 e nomes razoavelmente curtos (evita falsos positivos)
+            if distancia == 1 or (distancia == 2 and len(nome_dominio_legitimo) >= 5):
+                dominios_suspeitos_encontrados.append(dominio_completo)
+                break
+
+            # Detecta repetições estranhas de caracteres (exemplo "gooogle")
+            for char in set(nome_dominio_atual):
+                if nome_dominio_atual.count(char) > nome_dominio_legitimo.count(char) + 1:
+                    dominios_suspeitos_encontrados.append(dominio_completo)
+                    break
+
+            # Se nome do domínio contém nome legítimo mas com caracteres extras estranhos (ex: login-google)
+            if nome_dominio_legitimo in nome_dominio_atual and nome_dominio_atual != nome_dominio_legitimo:
+                if '-' in nome_dominio_atual or '_' in nome_dominio_atual:
+                    dominios_suspeitos_encontrados.append(dominio_completo)
+                    break
+
+                # Se o domínio tem caracteres repetidos demais e tamanho próximo do legítimo
+                if any(nome_dominio_atual.count(c) > 2 for c in set(nome_dominio_atual)) and \
+                   abs(len(nome_dominio_atual) - len(nome_dominio_legitimo)) <= 2:
+                    dominios_suspeitos_encontrados.append(dominio_completo)
+                    break
+
+                adicoes_phishing_comuns = ["login", "seguranca", "fatura", "atualiza", "verify", "secure", "bank", "premios", "rewards", "promo", "app", "online", "acesso", "cliente"]
+                if any(add in nome_dominio_atual for add in adicoes_phishing_comuns):
+                    dominios_suspeitos_encontrados.append(dominio_completo)
+                    break
+
+        # Subdomínio suspeito
+        if extraido.subdomain and extraido.subdomain.lower() != 'www':
+            palavras_chave_subdominio_suspeito = ["login", "seguranca", "fatura", "acesso", "confirmar", "atualizar", "premios", "ganho", "secure", "verify", "suporte", "app", "online", "portal"]
+            if any(palavra in extraido.subdomain.lower() for palavra in palavras_chave_subdominio_suspeito):
+                dominios_suspeitos_encontrados.append(dominio_completo)
+
+    return list(set(dominios_suspeitos_encontrados))
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5000)

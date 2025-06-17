@@ -82,7 +82,7 @@
 
             } catch (error) {
                 spinner.style.display = 'none'; 
-                statusMensagem.textContent = `Erro ao comunicar com o servidor: ${error.message}. Verifique se o backend está a funcionar (python app.py).`;
+                statusMensagem.textContent = `Erro ao comunicar com o servidor: ${error.message}.`;
                 resultadosDiv.classList.add('alerta');
                 resultadosDiv.querySelector('h2').style.color = 'var(--cor-alerta)';
                 console.error("Erro na requisição fetch:", error);
