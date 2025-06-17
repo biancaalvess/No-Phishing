@@ -3,6 +3,14 @@ import tldextract
 import requests
 import json
 import time
+from flask import Flask, request, render_template
+
+app = Flask(__name__)
+
+@app.route('/')
+def index():
+    return render_template('index.html') 
+
 
 def distancia_levenshtein(s1, s2):
     if len(s1) < len(s2):
