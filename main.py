@@ -124,19 +124,19 @@ def verificar_urls_suspeitas(links, lista_suspeita, dominios_legitimos):
                 dominios_suspeitos_encontrados.append(dominio_completo)
                 break
 
-                # Detecção de Typosquatting por Adição/Substituição de Caracteres e Hífen/Underscore
+            # Detecção de Typosquatting por Adição/Substituição de Caracteres e Hífen/Underscore
             if nome_dominio_legitimo in nome_dominio_atual and nome_dominio_atual != nome_dominio_legitimo:
-                    if '-' in nome_dominio_atual or '_' in nome_dominio_atual:
-                        dominios_suspeitos_encontrados.append(dominio_completo)
-                        break
-                    if any(nome_dominio_atual.count(char) > 2 for char in set(nome_dominio_atual)) and \
-                       abs(len(nome_dominio_atual) - len(nome_dominio_legitimo)) <= 2:
-                        dominios_suspeitos_encontrados.append(dominio_completo)
-                        break
-                    adicoes_phishing_comuns = ["login", "seguranca", "fatura", "atualiza", "verify", "secure", "bank", "premios", "rewards", "promo", "app", "online", "acesso", "cliente"]
-                    if any(add in nome_dominio_atual for add in adicoes_phishing_comuns):
-                        dominios_suspeitos_encontrados.append(dominio_completo)
-                        break
+                if '-' in nome_dominio_atual or '_' in nome_dominio_atual:
+                    dominios_suspeitos_encontrados.append(dominio_completo)
+                    break
+                if any(nome_dominio_atual.count(char) > 2 for char in set(nome_dominio_atual)) and \
+                   abs(len(nome_dominio_atual) - len(nome_dominio_legitimo)) <= 2:
+                    dominios_suspeitos_encontrados.append(dominio_completo)
+                    break
+                adicoes_phishing_comuns = ["login", "seguranca", "fatura", "atualiza", "verify", "secure", "bank", "premios", "rewards", "promo", "app", "online", "acesso", "cliente"]
+                if any(add in nome_dominio_atual for add in adicoes_phishing_comuns):
+                    dominios_suspeitos_encontrados.append(dominio_completo)
+                    break
 
         # 4. Detecção de Subdomínios Suspeitos (mesmo que o domínio principal não seja um typosquatting)
         if extraido.subdomain and extraido.subdomain.lower() != 'www':
@@ -145,6 +145,7 @@ def verificar_urls_suspeitas(links, lista_suspeita, dominios_legitimos):
                 dominios_suspeitos_encontrados.append(dominio_completo)
 
     return list(set(dominios_suspeitos_encontrados))
+
 
 if __name__ == '__main__':
     DOMINIOS_LEGITIMOS = [
