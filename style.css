@@ -1,0 +1,214 @@
+:root {
+    --cor-principal: #6a0dad; 
+    --cor-secundaria: #4b0082; 
+    --cor-fundo: #1a1a1a; 
+    --cor-texto: #e0e0e0;
+    --cor-texto-claro: #f0f0f0;
+    --cor-borda: #444; 
+    --cor-alerta: #ff6347; 
+    --cor-seguro: #7FFF00; 
+    --cor-alerta-fundo: #330d0d; 
+    --cor-seguro-fundo: #0d330d; 
+    --cor-container-fundo: #2b2b2b; 
+    --cor-resultados-fundo: #3a3a3a;
+}
+
+body {
+    font-family: 'Poppins', Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: var(--cor-fundo);
+    color: var(--cor-texto);
+    display: flex;
+    flex-direction: column;
+    justify-content: center; 
+    align-items: center;
+    min-height: 100vh; 
+    box-sizing: border-box; 
+}
+
+
+.container {
+    background-color: var(--cor-container-fundo);
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(49, 18, 54, 0.7); 
+    width: 100%;
+    max-width: 650px;
+    box-sizing: border-box;
+    border: 1px solid var(--cor-borda); 
+}
+        
+
+h1 {
+    color: var(--cor-principal);
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 2.2em;
+    font-weight: 700;
+}
+p.descricao {
+    text-align: center;
+    margin-bottom: 30px;
+    color: var(--cor-texto);
+    font-size: 1.05em;
+    line-height: 1.5;
+}
+textarea {
+    width: calc(100% - 22px); 
+    height: 180px;
+    padding: 12px;
+    margin-bottom: 20px;
+    border: 1px solid var(--cor-borda);
+    border-radius: 6px;
+    font-size: 1.05em;
+    resize: vertical;
+    background-color: #3a3a3a;
+    color: var(--cor-texto-claro);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    box-sizing: border-box;
+    box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5); 
+}
+textarea::placeholder {
+    color: #888;
+}
+textarea:focus {
+    border-color: var(--cor-principal);
+    box-shadow: 0 0 0 3px rgba(106, 13, 173, 0.4);
+    outline: none;
+}
+button {
+    display: block;
+    width: 100%;
+    padding: 14px 25px;
+    background-color: var(--cor-principal);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1.15em;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    font-weight: 600;
+}
+button:hover {
+    background-color: var(--cor-secundaria);
+    transform: translateY(-1px);
+}
+button:active {
+    transform: translateY(0);
+}
+
+#resultados {
+    margin-top: 35px;
+    padding: 25px;
+    border-radius: 10px;
+    background-color: var(--cor-resultados-fundo);
+    border: 1px solid var(--cor-borda);
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    color: var(--cor-texto);
+}
+.alerta {
+    background-color: var(--cor-alerta-fundo);
+    border-color: var(--cor-alerta);
+    color: var(--cor-alerta);
+}
+.seguro {
+    background-color: var(--cor-seguro-fundo);
+    border-color: var(--cor-seguro);
+    color: var(--cor-seguro);
+}
+#resultados h2 {
+    margin-top: 0;
+    font-size: 1.6em;
+    text-align: center;
+    margin-bottom: 15px;
+    color: var(--cor-texto-claro);
+}
+.alerta h2 {
+    color: var(--cor-alerta);
+}
+.seguro h2 {
+    color: var(--cor-seguro);
+}
+#resultados p {
+    text-align: center;
+    font-size: 1.1em;
+    font-weight: 600;
+}
+#resultados ul {
+    list-style-type: disc;
+    padding-left: 25px;
+    margin-top: 15px;
+    color: var(--cor-texto);
+}
+.alerta ul, .seguro ul {
+    color: var(--cor-texto-claro);
+}
+#resultados li {
+    margin-bottom: 8px;
+    font-size: 0.98em;
+}
+.bold {
+    font-weight: bold;
+    color: var(--cor-principal);
+}
+.alerta .bold {
+    color: var(--cor-alerta);
+}
+.seguro .bold {
+    color: var(--cor-seguro);
+}
+.spinner {
+    border: 4px solid rgba(255, 255, 255, 0.2);
+    border-left-color: var(--cor-principal);
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    animation: spin 0.8s linear infinite;
+    margin: 20px auto;
+    display: none; 
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsividade básica */
+@media (max-width: 768px) {
+    .container {
+        margin-top: 20px; 
+        padding: 25px;
+    }
+    h1 {
+        font-size: 1.8em;
+    }
+    p.descricao {
+        font-size: 0.95em;
+    }
+    textarea {
+        height: 120px;
+    }
+    button {
+        font-size: 1em;
+        padding: 12px 15px;
+    }
+    #resultados h2 {
+        font-size: 1.3em;
+    }
+    #resultados p {
+        font-size: 1em;
+    }
+}
+
+footer {
+    margin-top: 50px;
+    padding: 15px 0;
+    text-align: center;
+    font-size: 0.9em;
+    color: #aaa;
+    background-color: transparent;
+    border-top: 1px solid var(--cor-borda);
+    width: 100%;
+}

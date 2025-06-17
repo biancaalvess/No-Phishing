@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="/img/escudo.png" href="favicon.png">
+    <title>Detector de Phishing | Proteja-se de Golpes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Detector de Phishing - Golpes</h1>
+        <p class="descricao">Cole aqui o texto de um e-mail, mensagem ou URL para verificar se contém indícios de phishing ou golpes.</p>
+        <textarea id="mensagemInput" placeholder="Ex: 'Parabéns, ganhou um prémio! Clique em http://sitefalso.com.br para resgatar.'"></textarea>
+        <button onclick="verificarMensagem()">Analisar Mensagem</button>
+        <div class="spinner" id="spinner"></div>
+        <div id="resultados">
+            <h2>Resultados da Análise:</h2>
+            <p id="statusMensagem">Aguardando mensagem para análise.</p>
+            <ul id="listaPalavrasSuspeitas"></ul>
+            <ul id="listaDominiosSuspeitos"></ul>
+        </div>
+    </div>
+    <footer> Desenvolvido por Bianca Alves </footer>
+    <script src="script.js"></script>
+</body>
+</html>
