@@ -6,6 +6,12 @@ import requests
 import json
 import main
 
+from main import (
+    analisar_mensagens,
+    detectar_links,
+    verificar_urls_suspeitas,
+    processar_palavras_suspeitas_arquivo
+)
 
 DOMINIOS_LEGITIMOS = [
     "itau.com.br",
