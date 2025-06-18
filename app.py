@@ -179,7 +179,7 @@ def criar_estrutura_arquivos():
     os.makedirs('static', exist_ok=True)
     
     # Cria index.html se não existir
-    index_path = 'templates/index.html'
+    index_path = 'index.html'
     if not os.path.exists(index_path):
         with open(index_path, 'w', encoding='utf-8') as f:
             f.write('''<!DOCTYPE html>
