@@ -149,17 +149,6 @@ Copiar
 
 ---
 
-## Próximas Funcionalidades
-
-- Bot para WhatsApp - Análise direta de mensagens
-- App Mobile - Proteção em dispositivos móveis
-- Auto-atualização - Base de dados sempre atual
-- Dashboard - Estatísticas e relatórios
-- API REST - Integração com outros sistemas
-- Machine Learning - Detecção ainda mais precisa
-
----
-
 ## Contribuindo
 
 Encontrou um novo tipo de golpe? Quer melhorar a detecção?
