@@ -467,3 +467,50 @@ body {
 * {
   transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
+
+/* Notificações */
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: var(--background-card);
+  color: var(--text-primary);
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 1;
+  transition: opacity 0.3s ease;
+}
+
+.notification.warning {
+  border-color: var(--warning-color);
+}
+
+.notification.error {
+  border-color: var(--danger-color);
+}
+
+.char-warning {
+  color: var(--warning-color);
+}
+
+.char-muted {
+  color: var(--text-muted);
+}
+
+.btn-loading {
+  opacity: 0.7;
+}
+
+.spinner.active {
+  display: block;
+}
+
+.results.show {
+  display: block;
+}

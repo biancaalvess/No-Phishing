@@ -7,16 +7,16 @@ messageInput.addEventListener("input", function () {
   const maxLength = this.getAttribute("maxlength")
   charCounter.textContent = `${currentLength} / ${maxLength}`
 
+  charCounter.classList.remove("char-warning", "char-muted")
   if (currentLength > maxLength * 0.9) {
-    charCounter.style.color = "var(--warning-color)"
+    charCounter.classList.add("char-warning")
   } else {
-    charCounter.style.color = "var(--text-muted)"
+    charCounter.classList.add("char-muted")
   }
 })
 
 // Função principal de análise
 async function verificarMensagem() {
-  const messageInput = document.getElementById("messageInput")
   const analyzeBtn = document.getElementById("analyzeBtn")
   const spinner = document.getElementById("spinner")
   const results = document.getElementById("results")
@@ -30,21 +30,17 @@ async function verificarMensagem() {
     return
   }
 
-  // Estado de carregamento
   analyzeBtn.disabled = true
   spinner.classList.add("active")
-  btnText.style.opacity = "0.7"
+  btnText.classList.add("btn-loading")
 
   try {
-    // Chama a API do backend
     const response = await fetch("/verificar", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        mensagem: message,
-      }),
+      body: JSON.stringify({ mensagem: message }),
     })
 
     if (!response.ok) {
@@ -54,20 +50,16 @@ async function verificarMensagem() {
 
     const data = await response.json()
 
-    // Atualiza interface com resultados
     updateResults(data)
-
-    // Mostra resultados
     results.classList.add("show")
     results.scrollIntoView({ behavior: "smooth", block: "start" })
   } catch (error) {
     console.error("Erro na análise:", error)
     showError(error.message || "Erro ao analisar a mensagem. Tente novamente.")
   } finally {
-    // Remove estado de carregamento
     analyzeBtn.disabled = false
     spinner.classList.remove("active")
-    btnText.style.opacity = "1"
+    btnText.classList.remove("btn-loading")
   }
 }
 
@@ -80,14 +72,10 @@ function updateResults(data) {
   const recommendationsSection = document.getElementById("recommendationsSection")
   const recommendationsList = document.getElementById("recommendationsList")
 
-  // Garante que o score seja um número válido
   let riskScore = data.score_risco || 0
-  if (isNaN(riskScore)) {
-    riskScore = 0
-  }
+  if (isNaN(riskScore)) riskScore = 0
   riskScore = Math.round(riskScore)
 
-  // Atualiza indicador de risco
   riskIndicator.className = `risk-indicator ${data.nivel_risco}`
 
   let riskMessage = ""
@@ -109,13 +97,9 @@ function updateResults(data) {
 
   riskText.innerHTML = `<i class="${riskIcon}" aria-hidden="true"></i> ${riskMessage}`
 
-  // Atualiza lista de palavras suspeitas
   updateList(suspiciousWordsList, data.palavras_suspeitas, "fas fa-exclamation-circle")
-
-  // Atualiza lista de domínios suspeitos
   updateList(suspiciousDomainsList, data.dominios_suspeitos, "fas fa-globe")
 
-  // Atualiza recomendações
   if (data.recomendacoes && data.recomendacoes.length > 0) {
     updateList(recommendationsList, data.recomendacoes, "fas fa-lightbulb")
     recommendationsSection.style.display = "block"
@@ -123,7 +107,6 @@ function updateResults(data) {
     recommendationsSection.style.display = "none"
   }
 
-  // Log para debug
   console.log("Dados recebidos:", data)
 }
 
@@ -153,57 +136,32 @@ function showError(message) {
   document.getElementById("results").classList.add("show")
 }
 
-// Sistema de notificações
+// Sistema de notificações (sem inline)
 function showNotification(message, type = "info") {
-  // Cria elemento de notificação
   const notification = document.createElement("div")
   notification.className = `notification ${type}`
   notification.innerHTML = `
-        <i class="fas fa-info-circle" aria-hidden="true"></i>
-        <span>${message}</span>
-    `
-
-  // Adiciona estilos inline (você pode mover para CSS)
-  notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: var(--background-card);
-        color: var(--text-primary);
-        padding: 1rem 1.5rem;
-        border-radius: 0.5rem;
-        border-left: 4px solid var(--primary-color);
-        box-shadow: var(--shadow-lg);
-        z-index: 1000;
-        animation: slideInRight 0.3s ease;
-    `
-
-  if (type === "warning") {
-    notification.style.borderLeftColor = "var(--warning-color)"
-  } else if (type === "error") {
-    notification.style.borderLeftColor = "var(--danger-color)"
-  }
+    <i class="fas fa-info-circle" aria-hidden="true"></i>
+    <span>${message}</span>
+  `
 
   document.body.appendChild(notification)
 
-  // Remove após 3 segundos
   setTimeout(() => {
-    notification.style.animation = "slideOutRight 0.3s ease"
+    notification.classList.add("fade-out")
     setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification)
-      }
+      notification.remove()
     }, 300)
   }, 3000)
 }
 
-// Event listeners
+// Submissão do formulário
 document.getElementById("analysisForm").addEventListener("submit", (e) => {
   e.preventDefault()
   verificarMensagem()
 })
 
-// Atalho de teclado
+// Atalho de teclado: Ctrl + Enter
 messageInput.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.key === "Enter") {
     e.preventDefault()
@@ -211,48 +169,22 @@ messageInput.addEventListener("keydown", (e) => {
   }
 })
 
-// Adiciona animações CSS para notificações
-const style = document.createElement("style")
-style.textContent = `
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOutRight {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`
-const toggleBtn = document.getElementById('toggle-theme');
-const body = document.body;
+// Tema escuro
+const toggleBtn = document.getElementById("toggle-theme")
+const body = document.body
 
-if (localStorage.getItem('tema') === 'dark') {
-    body.classList.add('dark');
-    toggleBtn.textContent = '☀️';
+if (localStorage.getItem("tema") === "dark") {
+  body.classList.add("dark")
+  toggleBtn.textContent = "☀️"
 }
 
-toggleBtn.addEventListener('click', () => {
-    body.classList.toggle('dark');
-    if (body.classList.contains('dark')) {
-        toggleBtn.textContent = '☀️';
-        localStorage.setItem('tema', 'dark');
-    } else {
-        toggleBtn.textContent = '🌙';
-        localStorage.setItem('tema', 'light');
-    }
-});
-
-document.head.appendChild(style)
+toggleBtn.addEventListener("click", () => {
+  body.classList.toggle("dark")
+  if (body.classList.contains("dark")) {
+    toggleBtn.textContent = "☀️"
+    localStorage.setItem("tema", "dark")
+  } else {
+    toggleBtn.textContent = "🌙"
+    localStorage.setItem("tema", "light")
+  }
+})
