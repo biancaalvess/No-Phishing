@@ -241,7 +241,7 @@ const body = document.body;
 
 if (localStorage.getItem('tema') === 'dark') {
     body.classList.add('dark');
-    toggleBtn.textContent = '☀️ Modo Claro';
+    toggleBtn.textContent = '☀️';
 }
 
 toggleBtn.addEventListener('click', () => {
