@@ -178,767 +178,7 @@ def criar_estrutura_arquivos():
     os.makedirs('templates', exist_ok=True)
     os.makedirs('static', exist_ok=True)
     
-    # Cria index.html se não existir
-    index_path = 'index.html'
-    if not os.path.exists(index_path):
-        with open(index_path, 'w', encoding='utf-8') as f:
-            f.write('''<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detector de Phishing - Proteção contra Golpes</title>
-    <meta name="description" content="Ferramenta inteligente para detectar emails e URLs de phishing, protegendo você contra golpes online.">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-</head>
-<body>
-    <header class="header">
-        <h1>
-            <i class="fas fa-shield-alt icon" aria-hidden="true"></i>
-            Detector de Phishing
-        </h1>
-        <p>Ferramenta inteligente para identificar emails e URLs suspeitos, protegendo você contra golpes online</p>
-    </header>
-
-    <main class="container">
-        <div class="card">
-            <form id="analysisForm" novalidate>
-                <div class="input-group">
-                    <label for="messageInput" class="input-label">
-                        <i class="fas fa-envelope" aria-hidden="true"></i>
-                        Cole aqui o texto do email, mensagem ou URL para análise
-                    </label>
-                    <div class="textarea-container">
-                        <textarea 
-                            id="messageInput" 
-                            class="input-textarea"
-                            placeholder="Exemplo: 'Parabéns! Você ganhou um prêmio de R$ 10.000! Clique em https://site-suspeito.com para resgatar seu prêmio agora mesmo!'"
-                            maxlength="5000"
-                            required
-                            aria-describedby="char-counter"
-                        ></textarea>
-                        <div id="char-counter" class="char-counter">0 / 5000</div>
-                    </div>
-                </div>
-
-                <button type="submit" class="analyze-btn" id="analyzeBtn">
-                    <span class="btn-text">
-                        <i class="fas fa-search" aria-hidden="true"></i>
-                        Analisar Mensagem
-                    </span>
-                    <div class="spinner" id="spinner" aria-hidden="true"></div>
-                </button>
-            </form>
-        </div>
-
-        <div class="card results" id="results" role="region" aria-label="Resultados da análise">
-            <div id="riskIndicator" class="risk-indicator" role="alert">
-                <div class="risk-score">
-                    <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
-                    <span id="riskText">Analisando...</span>
-                </div>
-            </div>
-
-            <div class="results-section">
-                <h2 class="results-title">
-                    <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
-                    Palavras Suspeitas Encontradas
-                </h2>
-                <div class="results-list">
-                    <ul id="suspiciousWordsList" aria-label="Lista de palavras suspeitas">
-                        <li class="empty-state">Nenhuma palavra suspeita encontrada</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="results-section">
-                <h2 class="results-title">
-                    <i class="fas fa-globe" aria-hidden="true"></i>
-                    Domínios Suspeitos Encontrados
-                </h2>
-                <div class="results-list">
-                    <ul id="suspiciousDomainsList" aria-label="Lista de domínios suspeitos">
-                        <li class="empty-state">Nenhum domínio suspeito encontrado</li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="results-section" id="recommendationsSection" style="display: none;">
-                <h2 class="results-title">
-                    <i class="fas fa-lightbulb" aria-hidden="true"></i>
-                    Recomendações de Segurança
-                </h2>
-                <div class="results-list">
-                    <ul id="recommendationsList" aria-label="Lista de recomendações">
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer class="footer">
-        <p>
-            Desenvolvido com <i class="fas fa-heart" style="color: #ef4444;" aria-hidden="true"></i> por 
-            <a href="#" target="_blank" rel="noopener">Bianca Alves</a> - 2025
-        </p>
-        <p style="margin-top: 0.5rem; font-size: 0.8rem;">
-            <i class="fas fa-info-circle" aria-hidden="true"></i>
-            Esta ferramenta é apenas indicativa. Sempre mantenha cuidado com mensagens suspeitas.
-        </p>
-    </footer>
-
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
-</body>
-</html>''')
     
-    # Cria style.css se não existir
-    css_path = 'static/style.css'
-    if not os.path.exists(css_path):
-        with open(css_path, 'w', encoding='utf-8') as f:
-            f.write(''':root {
-  --primary-color: #8b5cf6;
-  --primary-dark: #7c3aed;
-  --primary-light: #a78bfa;
-  --secondary-color: #6366f1;
-  --background-dark: #0f0f23;
-  --background-card: #1a1a2e;
-  --background-input: #16213e;
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --border-color: #334155;
-  --success-color: #10b981;
-  --success-bg: #064e3b;
-  --warning-color: #f59e0b;
-  --warning-bg: #451a03;
-  --danger-color: #ef4444;
-  --danger-bg: #450a0a;
-  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
-  --shadow-xl: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-  --gradient-primary: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
-}
-
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: var(--background-dark);
-  color: var(--text-primary);
-  line-height: 1.6;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  padding: 1rem;
-}
-
-.header {
-  text-align: center;
-  margin-bottom: 2rem;
-  padding: 2rem 0;
-}
-
-.header h1 {
-  font-size: clamp(2rem, 5vw, 3rem);
-  font-weight: 700;
-  background: var(--gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin-bottom: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-}
-
-.header .icon {
-  font-size: 0.8em;
-  color: var(--primary-color);
-}
-
-.header p {
-  color: var(--text-secondary);
-  font-size: 1.1rem;
-  max-width: 600px;
-  margin: 0 auto;
-  font-weight: 500;
-}
-
-.container {
-  max-width: 800px;
-  margin: 0 auto;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.card {
-  background: var(--background-card);
-  border-radius: 1rem;
-  padding: 2rem;
-  box-shadow: var(--shadow-xl);
-  border: 1px solid var(--border-color);
-  backdrop-filter: blur(10px);
-  margin-bottom: 2rem;
-}
-
-.input-group {
-  margin-bottom: 1.5rem;
-}
-
-.input-label {
-  display: block;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.5rem;
-  font-size: 0.95rem;
-}
-
-.textarea-container {
-  position: relative;
-}
-
-.input-textarea {
-  width: 100%;
-  min-height: 200px;
-  padding: 1rem;
-  background: var(--background-input);
-  border: 2px solid var(--border-color);
-  border-radius: 0.75rem;
-  color: var(--text-primary);
-  font-size: 1rem;
-  font-family: inherit;
-  resize: vertical;
-  transition: all 0.3s ease;
-  line-height: 1.5;
-}
-
-.input-textarea::placeholder {
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.input-textarea:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-  background: var(--background-card);
-}
-
-.char-counter {
-  position: absolute;
-  bottom: 0.5rem;
-  right: 0.75rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  background: var(--background-dark);
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.25rem;
-}
-
-.analyze-btn {
-  width: 100%;
-  padding: 1rem 2rem;
-  background: var(--gradient-primary);
-  color: white;
-  border: none;
-  border-radius: 0.75rem;
-  font-size: 1.1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.analyze-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-lg);
-}
-
-.analyze-btn:active {
-  transform: translateY(0);
-}
-
-.analyze-btn:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  border-top: 2px solid white;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  display: none;
-}
-
-.spinner.active {
-  display: block;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-
-.results {
-  display: none;
-  animation: fadeInUp 0.5s ease;
-}
-
-.results.show {
-  display: block;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.risk-indicator {
-  padding: 1.5rem;
-  border-radius: 0.75rem;
-  margin-bottom: 2rem;
-  text-align: center;
-  font-weight: 600;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.75rem;
-  border: 2px solid;
-}
-
-.risk-indicator.safe {
-  background: var(--success-bg);
-  border-color: var(--success-color);
-  color: var(--success-color);
-}
-
-.risk-indicator.warning {
-  background: var(--warning-bg);
-  border-color: var(--warning-color);
-  color: var(--warning-color);
-}
-
-.risk-indicator.danger {
-  background: var(--danger-bg);
-  border-color: var(--danger-color);
-  color: var(--danger-color);
-}
-
-.risk-score {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 1.5rem;
-  font-weight: 700;
-}
-
-.results-section {
-  margin-bottom: 2rem;
-}
-
-.results-title {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.results-list {
-  background: var(--background-input);
-  border-radius: 0.5rem;
-  padding: 1rem;
-  border: 1px solid var(--border-color);
-}
-
-.results-list ul {
-  list-style: none;
-  padding: 0;
-}
-
-.results-list li {
-  padding: 0.75rem;
-  margin-bottom: 0.5rem;
-  background: var(--background-card);
-  border-radius: 0.5rem;
-  border-left: 4px solid var(--primary-color);
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-weight: 500;
-}
-
-.results-list li:last-child {
-  margin-bottom: 0;
-}
-
-.results-list .icon {
-  color: var(--primary-color);
-  font-size: 1.1rem;
-}
-
-.empty-state {
-  text-align: center;
-  padding: 2rem;
-  color: var(--text-muted);
-  font-style: italic;
-}
-
-.footer {
-  text-align: center;
-  padding: 2rem 0;
-  margin-top: auto;
-  border-top: 1px solid var(--border-color);
-  color: var(--text-muted);
-  font-size: 0.9rem;
-}
-
-.footer a {
-  color: var(--primary-color);
-  text-decoration: none;
-  font-weight: 500;
-}
-
-.footer a:hover {
-  text-decoration: underline;
-}
-
-/* Responsividade */
-@media (max-width: 768px) {
-  body {
-    padding: 0.5rem;
-  }
-
-  .card {
-    padding: 1.5rem;
-    border-radius: 0.75rem;
-  }
-
-  .header {
-    padding: 1rem 0;
-    margin-bottom: 1.5rem;
-  }
-
-  .input-textarea {
-    min-height: 150px;
-    padding: 0.75rem;
-  }
-
-  .analyze-btn {
-    padding: 0.875rem 1.5rem;
-    font-size: 1rem;
-  }
-
-  .risk-indicator {
-    padding: 1rem;
-    font-size: 1.1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .header h1 {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-
-  .results-list li {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-}
-
-/* Melhorias de acessibilidade */
-@media (prefers-reduced-motion: reduce) {
-  * {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* Estados de foco melhorados */
-.analyze-btn:focus-visible,
-.input-textarea:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}''')
-    
-    # Cria script.js se não existir
-    js_path = 'static/script.js'
-    if not os.path.exists(js_path):
-        with open(js_path, 'w', encoding='utf-8') as f:
-            f.write('''// Contador de caracteres
-const messageInput = document.getElementById("messageInput")
-const charCounter = document.getElementById("char-counter")
-
-messageInput.addEventListener("input", function () {
-  const currentLength = this.value.length
-  const maxLength = this.getAttribute("maxlength")
-  charCounter.textContent = `${currentLength} / ${maxLength}`
-
-  if (currentLength > maxLength * 0.9) {
-    charCounter.style.color = "var(--warning-color)"
-  } else {
-    charCounter.style.color = "var(--text-muted)"
-  }
-})
-
-// Função principal de análise
-async function verificarMensagem() {
-  const messageInput = document.getElementById("messageInput")
-  const analyzeBtn = document.getElementById("analyzeBtn")
-  const spinner = document.getElementById("spinner")
-  const results = document.getElementById("results")
-  const btnText = document.querySelector(".btn-text")
-
-  const message = messageInput.value.trim()
-
-  if (!message) {
-    showNotification("Por favor, insira uma mensagem para análise.", "warning")
-    messageInput.focus()
-    return
-  }
-
-  // Estado de carregamento
-  analyzeBtn.disabled = true
-  spinner.classList.add("active")
-  btnText.style.opacity = "0.7"
-
-  try {
-    // Chama a API do backend
-    const response = await fetch("/verificar", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        mensagem: message,
-      }),
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.erro || "Erro na análise")
-    }
-
-    const data = await response.json()
-
-    // Atualiza interface com resultados
-    updateResults(data)
-
-    // Mostra resultados
-    results.classList.add("show")
-    results.scrollIntoView({ behavior: "smooth", block: "start" })
-  } catch (error) {
-    console.error("Erro na análise:", error)
-    showError(error.message || "Erro ao analisar a mensagem. Tente novamente.")
-  } finally {
-    // Remove estado de carregamento
-    analyzeBtn.disabled = false
-    spinner.classList.remove("active")
-    btnText.style.opacity = "1"
-  }
-}
-
-// Atualiza interface com resultados
-function updateResults(data) {
-  const riskIndicator = document.getElementById("riskIndicator")
-  const riskText = document.getElementById("riskText")
-  const suspiciousWordsList = document.getElementById("suspiciousWordsList")
-  const suspiciousDomainsList = document.getElementById("suspiciousDomainsList")
-  const recommendationsSection = document.getElementById("recommendationsSection")
-  const recommendationsList = document.getElementById("recommendationsList")
-
-  // Garante que o score seja um número válido
-  let riskScore = data.score_risco || 0
-  if (isNaN(riskScore)) {
-    riskScore = 0
-  }
-  riskScore = Math.round(riskScore)
-
-  // Atualiza indicador de risco
-  riskIndicator.className = `risk-indicator ${data.nivel_risco}`
-
-  let riskMessage = ""
-  let riskIcon = ""
-
-  switch (data.nivel_risco) {
-    case "danger":
-      riskMessage = `ALTO RISCO (${riskScore}/100) - Possível Golpe!`
-      riskIcon = "fas fa-exclamation-triangle"
-      break
-    case "warning":
-      riskMessage = `RISCO MODERADO (${riskScore}/100) - Seja Cauteloso`
-      riskIcon = "fas fa-exclamation-circle"
-      break
-    default:
-      riskMessage = `BAIXO RISCO (${riskScore}/100) - Aparenta ser Seguro`
-      riskIcon = "fas fa-check-circle"
-  }
-
-  riskText.innerHTML = `<i class="${riskIcon}" aria-hidden="true"></i> ${riskMessage}`
-
-  // Atualiza lista de palavras suspeitas
-  updateList(suspiciousWordsList, data.palavras_suspeitas, "fas fa-exclamation-circle")
-
-  // Atualiza lista de domínios suspeitos
-  updateList(suspiciousDomainsList, data.dominios_suspeitos, "fas fa-globe")
-
-  // Atualiza recomendações
-  if (data.recomendacoes && data.recomendacoes.length > 0) {
-    updateList(recommendationsList, data.recomendacoes, "fas fa-lightbulb")
-    recommendationsSection.style.display = "block"
-  } else {
-    recommendationsSection.style.display = "none"
-  }
-
-  // Log para debug
-  console.log("Dados recebidos:", data)
-}
-
-// Atualiza listas de resultados
-function updateList(listElement, items, iconClass) {
-  listElement.innerHTML = ""
-
-  if (!items || items.length === 0) {
-    listElement.innerHTML = '<li class="empty-state">Nenhum item suspeito encontrado</li>'
-  } else {
-    items.forEach((item) => {
-      const li = document.createElement("li")
-      li.innerHTML = `<i class="${iconClass} icon" aria-hidden="true"></i> ${item}`
-      listElement.appendChild(li)
-    })
-  }
-}
-
-// Mostra erro
-function showError(message) {
-  const riskIndicator = document.getElementById("riskIndicator")
-  const riskText = document.getElementById("riskText")
-
-  riskIndicator.className = "risk-indicator danger"
-  riskText.innerHTML = `<i class="fas fa-exclamation-triangle" aria-hidden="true"></i> ${message}`
-
-  document.getElementById("results").classList.add("show")
-}
-
-// Sistema de notificações
-function showNotification(message, type = "info") {
-  // Cria elemento de notificação
-  const notification = document.createElement("div")
-  notification.className = `notification ${type}`
-  notification.innerHTML = `
-        <i class="fas fa-info-circle" aria-hidden="true"></i>
-        <span>${message}</span>
-    `
-
-  // Adiciona estilos inline (você pode mover para CSS)
-  notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: var(--background-card);
-        color: var(--text-primary);
-        padding: 1rem 1.5rem;
-        border-radius: 0.5rem;
-        border-left: 4px solid var(--primary-color);
-        box-shadow: var(--shadow-lg);
-        z-index: 1000;
-        animation: slideInRight 0.3s ease;
-    `
-
-  if (type === "warning") {
-    notification.style.borderLeftColor = "var(--warning-color)"
-  } else if (type === "error") {
-    notification.style.borderLeftColor = "var(--danger-color)"
-  }
-
-  document.body.appendChild(notification)
-
-  // Remove após 3 segundos
-  setTimeout(() => {
-    notification.style.animation = "slideOutRight 0.3s ease"
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification)
-      }
-    }, 300)
-  }, 3000)
-}
-
-// Event listeners
-document.getElementById("analysisForm").addEventListener("submit", (e) => {
-  e.preventDefault()
-  verificarMensagem()
-})
-
-// Atalho de teclado
-messageInput.addEventListener("keydown", (e) => {
-  if (e.ctrlKey && e.key === "Enter") {
-    e.preventDefault()
-    verificarMensagem()
-  }
-})
-
-// Adiciona animações CSS para notificações
-const style = document.createElement("style")
-style.textContent = `
-    @keyframes slideInRight {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    @keyframes slideOutRight {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-    }
-`
-document.head.appendChild(style)'''
-)
-
 @app.route('/')
 def index():
     """Página principal"""
@@ -958,17 +198,17 @@ def verificar_mensagem():
         if not mensagem:
             return jsonify({'erro': 'Mensagem vazia'}), 400
         
-        logger.info(f"🔍 ANÁLISE LOCAL: {mensagem[:100]}...")
+        logger.info(f" ANÁLISE LOCAL: {mensagem[:100]}...")
         
         # ANÁLISE COMPLETA LOCAL
         resultado = analisar_local(mensagem)
         
-        logger.warning(f"🚨 RESULTADO: {resultado['nivel_risco_texto']} - Score: {resultado['score_risco']}")
+        logger.warning(f" RESULTADO: {resultado['nivel_risco_texto']} - Score: {resultado['score_risco']}")
         
         return jsonify(resultado)
         
     except Exception as e:
-        logger.error(f"❌ ERRO na análise: {str(e)}")
+        logger.error(f" ERRO na análise: {str(e)}")
         return jsonify({
             'score_risco': 90,
             'nivel_risco': 'danger',
@@ -976,8 +216,8 @@ def verificar_mensagem():
             'palavras_suspeitas': [],
             'dominios_suspeitos': [f"ERRO NA ANÁLISE: {str(e)}"],
             'recomendacoes': [
-                "🚨 ERRO NO SISTEMA - Seja cauteloso",
-                "🛡️ Não insira dados pessoais até verificar manualmente"
+                " ERRO NO SISTEMA - Seja cauteloso",
+                " Não insira dados pessoais até verificar manualmente"
             ]
         }), 200
 
@@ -1220,7 +460,7 @@ def analisar_local(mensagem):
             score_risco += imitacao_result['score']
             for imitacao in imitacao_result['imitacoes']:
                 dominios_suspeitos.append(
-                    f"🚨 {imitacao['tipo']}: {imitacao['dominio_suspeito']} "
+                    f" {imitacao['tipo']}: {imitacao['dominio_suspeito']} "
                     f"imita {imitacao['marca_imitada']} (oficial: {imitacao['dominio_oficial']})"
                 )
         
@@ -1273,46 +513,46 @@ def analisar_local(mensagem):
         nivel_risco = 'danger'
         nivel_risco_texto = 'CRÍTICO'
         recomendacoes = [
-            "🚨 GOLPE DETECTADO - NÃO RESPONDA A ESTA MENSAGEM",
-            "❌ NUNCA compartilhe contas ou dados pessoais",
-            "🛡️ NUNCA crie contas para terceiros usarem",
-            "💰 Desconfie de promessas de dinheiro fácil",
-            "📞 Golpes de 'colaboração' são muito comuns",
-            "🚔 Reporte este golpe às autoridades se necessário"
+            " GOLPE DETECTADO - NÃO RESPONDA A ESTA MENSAGEM",
+            " NUNCA compartilhe contas ou dados pessoais",
+            " NUNCA crie contas para terceiros usarem",
+            " Desconfie de promessas de dinheiro fácil",
+            " Golpes de 'colaboração' são muito comuns",
+            " Reporte este golpe às autoridades se necessário"
         ]
     elif score_risco >= 60:
         nivel_risco = 'danger'
         nivel_risco_texto = 'ALTO'
         recomendacoes = [
-            "⚠️ ALTO RISCO - Seja extremamente cauteloso",
-            "🔍 Verifique se é realmente da empresa oficial",
-            "❌ NÃO clique em links ou baixe arquivos",
-            "📞 Entre em contato com a empresa por canais oficiais"
+            " ALTO RISCO - Seja extremamente cauteloso",
+            "Verifique se é realmente da empresa oficial",
+            " NÃO clique em links ou baixe arquivos",
+            " Entre em contato com a empresa por canais oficiais"
         ]
     elif score_risco >= 40:
         nivel_risco = 'warning'
         nivel_risco_texto = 'MÉDIO'
         recomendacoes = [
-            "⚠️ CUIDADO - Esta mensagem tem elementos suspeitos",
-            "🔍 Confirme a legitimidade antes de prosseguir",
-            "🛡️ Evite inserir dados sensíveis",
-            "📞 Em caso de dúvida, contate a empresa diretamente"
+            " CUIDADO - Esta mensagem tem elementos suspeitos",
+            " Confirme a legitimidade antes de prosseguir",
+            " Evite inserir dados sensíveis",
+            " Em caso de dúvida, contate a empresa diretamente"
         ]
     elif score_risco >= 20:
         nivel_risco = 'warning'
         nivel_risco_texto = 'BAIXO'
         recomendacoes = [
-            "⚠️ ATENÇÃO - Alguns elementos podem ser suspeitos",
-            "🔍 Sempre verifique a legitimidade de mensagens",
-            "🛡️ Mantenha cuidado com dados pessoais"
+            " ATENÇÃO - Alguns elementos podem ser suspeitos",
+            " Sempre verifique a legitimidade de mensagens",
+            " Mantenha cuidado com dados pessoais"
         ]
     else:
         nivel_risco = 'safe'
         nivel_risco_texto = 'SEGURO'
         recomendacoes = [
-            "✅ Mensagem aparenta ser segura",
-            "🛡️ Mesmo assim, sempre mantenha cuidado com dados pessoais",
-            "🔍 Verifique sempre a legitimidade de sites antes de inserir dados"
+            " Mensagem aparenta ser segura",
+            " Mesmo assim, sempre mantenha cuidado com dados pessoais",
+            " Verifique sempre a legitimidade de sites antes de inserir dados"
         ]
     
     return {
@@ -1357,11 +597,11 @@ if __name__ == '__main__':
     # Cria estrutura de arquivos automaticamente
     criar_estrutura_arquivos()
     
-    logger.warning("🚨 SISTEMA INICIADO EM MODO 100% LOCAL")
-    logger.warning("🛡️ PRIORIDADE MÁXIMA: PROTEÇÃO DO USUÁRIO")
-    logger.info("📊 Sistema completamente independente - SEM APIs externas")
-    logger.info("📁 Estrutura de arquivos criada automaticamente")
-    logger.info(f"🔍 Protegendo contra {len(MARCAS_CRITICAS)} marcas críticas")
-    logger.info(f"⚠️ Detectando {len(TLDS_PERIGOSOS)} TLDs perigosos")
+    logger.warning(" SISTEMA INICIADO EM MODO 100% LOCAL")
+    logger.warning(" PRIORIDADE MÁXIMA: PROTEÇÃO DO USUÁRIO")
+    logger.info(" Sistema completamente independente - SEM APIs externas")
+    logger.info("Estrutura de arquivos criada automaticamente")
+    logger.info(f" Protegendo contra {len(MARCAS_CRITICAS)} marcas críticas")
+    logger.info(f" Detectando {len(TLDS_PERIGOSOS)} TLDs perigosos")
     
     app.run(debug=True, host='127.0.0.1', port=5000)
