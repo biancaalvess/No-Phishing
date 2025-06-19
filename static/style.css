@@ -394,3 +394,47 @@ body {
   outline: 2px solid var(--primary-color);
   outline-offset: 2px;
 }
+
+/* Tema padrão - Clean */
+body {
+    background-color: #ffffff;
+    color: #222222;
+    transition: background 0.3s, color 0.3s;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+/* Botão de tema */
+#toggle-theme {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background-color: #ddd;
+    color: #333;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+}
+
+#toggle-theme:hover {
+    background-color: #bbb;
+}
+
+/* Modo Dark */
+body.dark {
+    background-color: #121212;
+    color: #f0f0f0;
+}
+
+body.dark #toggle-theme {
+    background-color: #333;
+    color: #fff;
+}
+
+body.dark .sua-classe {
+    background-color: #1e1e1e;
+    color: #e0e0e0;
+    border-color: #444;
+}

@@ -236,4 +236,23 @@ style.textContent = `
         }
     }
 `
+const toggleBtn = document.getElementById('toggle-theme');
+const body = document.body;
+
+if (localStorage.getItem('tema') === 'dark') {
+    body.classList.add('dark');
+    toggleBtn.textContent = '☀️ Modo Claro';
+}
+
+toggleBtn.addEventListener('click', () => {
+    body.classList.toggle('dark');
+    if (body.classList.contains('dark')) {
+        toggleBtn.textContent = '☀️';
+        localStorage.setItem('tema', 'dark');
+    } else {
+        toggleBtn.textContent = '🌙';
+        localStorage.setItem('tema', 'light');
+    }
+});
+
 document.head.appendChild(style)
