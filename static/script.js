@@ -35,7 +35,7 @@ async function verificarMensagem() {
   btnText.classList.add("btn-loading")
 
   try {
-    const response = await fetch("/verificar", {
+    const response = await fetch("http://localhost:5000/verificar", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -44,11 +44,28 @@ async function verificarMensagem() {
     })
 
     if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.erro || "Erro na análise")
+      let errorMessage = "Erro na análise"
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.erro || errorMessage
+      } catch (jsonError) {
+        console.warn("Erro ao parsear resposta de erro:", jsonError)
+        errorMessage = `Erro ${response.status}: ${response.statusText}`
+      }
+      throw new Error(errorMessage)
     }
 
-    const data = await response.json()
+    let data
+    try {
+      data = await response.json()
+    } catch (jsonError) {
+      console.error("Erro ao parsear resposta JSON:", jsonError)
+      throw new Error("Resposta inválida do servidor")
+    }
+
+    if (!data || typeof data !== 'object') {
+      throw new Error("Dados de resposta inválidos")
+    }
 
     updateResults(data)
     results.classList.add("show")
@@ -67,36 +84,60 @@ async function verificarMensagem() {
 function updateResults(data) {
   const riskIndicator = document.getElementById("riskIndicator")
   const riskText = document.getElementById("riskText")
+  const meterFill = document.getElementById("meterFill")
+  const riskCategory = document.getElementById("riskCategory")
+  const analysisTimestamp = document.getElementById("analysisTimestamp")
   const suspiciousWordsList = document.getElementById("suspiciousWordsList")
   const suspiciousDomainsList = document.getElementById("suspiciousDomainsList")
   const recommendationsSection = document.getElementById("recommendationsSection")
   const recommendationsList = document.getElementById("recommendationsList")
+  const threatDetailsSection = document.getElementById("threatDetailsSection")
+  const threatDetailsList = document.getElementById("threatDetailsList")
 
   let riskScore = data.score_risco || 0
   if (isNaN(riskScore)) riskScore = 0
   riskScore = Math.round(riskScore)
 
+  // Atualiza timestamp
+  const now = new Date()
+  analysisTimestamp.textContent = `Análise realizada em ${now.toLocaleString('pt-BR')}`
+
+  // Atualiza indicador de risco
   riskIndicator.className = `risk-indicator ${data.nivel_risco}`
 
   let riskMessage = ""
   let riskIcon = ""
+  let categoryText = ""
 
   switch (data.nivel_risco) {
     case "danger":
       riskMessage = `ALTO RISCO (${riskScore}/100) - Possível Golpe!`
       riskIcon = "fas fa-exclamation-triangle"
+      categoryText = "CRÍTICO - AÇÃO IMEDIATA NECESSÁRIA"
       break
     case "warning":
       riskMessage = `RISCO MODERADO (${riskScore}/100) - Seja Cauteloso`
       riskIcon = "fas fa-exclamation-circle"
+      categoryText = "ATENÇÃO - VERIFICAÇÃO RECOMENDADA"
       break
     default:
       riskMessage = `BAIXO RISCO (${riskScore}/100) - Aparenta ser Seguro`
       riskIcon = "fas fa-check-circle"
+      categoryText = "SEGURO - SEM AMEAÇAS DETECTADAS"
   }
 
   riskText.innerHTML = `<i class="${riskIcon}" aria-hidden="true"></i> ${riskMessage}`
+  riskCategory.textContent = categoryText
 
+  // Atualiza medidor de risco
+  meterFill.style.width = `${riskScore}%`
+
+  // Atualiza badges
+  document.getElementById("wordsBadge").textContent = data.palavras_suspeitas ? data.palavras_suspeitas.length : 0
+  document.getElementById("domainsBadge").textContent = data.dominios_suspeitos ? data.dominios_suspeitos.length : 0
+  document.getElementById("recommendationsBadge").textContent = data.recomendacoes ? data.recomendacoes.length : 0
+
+  // Atualiza listas
   updateList(suspiciousWordsList, data.palavras_suspeitas, "fas fa-exclamation-circle")
   updateList(suspiciousDomainsList, data.dominios_suspeitos, "fas fa-globe")
 
@@ -105,6 +146,28 @@ function updateResults(data) {
     recommendationsSection.style.display = "block"
   } else {
     recommendationsSection.style.display = "none"
+  }
+
+  // Detalhes da ameaça
+  const threatDetails = []
+  if (data.detalhes) {
+    if (data.detalhes.tipo_analise) {
+      threatDetails.push(`Tipo de Análise: ${data.detalhes.tipo_analise}`)
+    }
+    if (data.detalhes.urls_encontradas) {
+      threatDetails.push(`URLs Encontradas: ${data.detalhes.urls_encontradas}`)
+    }
+    if (data.detalhes.dominios_analisados && data.detalhes.dominios_analisados.length > 0) {
+      threatDetails.push(`Domínios Analisados: ${data.detalhes.dominios_analisados.join(', ')}`)
+    }
+  }
+
+  if (threatDetails.length > 0) {
+    updateList(threatDetailsList, threatDetails, "fas fa-bug")
+    threatDetailsSection.style.display = "block"
+    document.getElementById("threatsBadge").textContent = threatDetails.length
+  } else {
+    threatDetailsSection.style.display = "none"
   }
 
   console.log("Dados recebidos:", data)
@@ -129,9 +192,26 @@ function updateList(listElement, items, iconClass) {
 function showError(message) {
   const riskIndicator = document.getElementById("riskIndicator")
   const riskText = document.getElementById("riskText")
+  const meterFill = document.getElementById("meterFill")
+  const riskCategory = document.getElementById("riskCategory")
 
   riskIndicator.className = "risk-indicator danger"
   riskText.innerHTML = `<i class="fas fa-exclamation-triangle" aria-hidden="true"></i> ${message}`
+  riskCategory.textContent = "ERRO - PROBLEMA TÉCNICO"
+  meterFill.style.width = "100%"
+
+  // Limpa badges
+  document.getElementById("wordsBadge").textContent = "0"
+  document.getElementById("domainsBadge").textContent = "0"
+  document.getElementById("recommendationsBadge").textContent = "0"
+
+  // Limpa listas
+  document.getElementById("suspiciousWordsList").innerHTML = '<li class="empty-state">Erro na análise</li>'
+  document.getElementById("suspiciousDomainsList").innerHTML = '<li class="empty-state">Erro na análise</li>'
+  
+  // Esconde seções opcionais
+  document.getElementById("recommendationsSection").style.display = "none"
+  document.getElementById("threatDetailsSection").style.display = "none"
 
   document.getElementById("results").classList.add("show")
 }

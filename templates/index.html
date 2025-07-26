@@ -14,26 +14,41 @@
 <body>
     <button id="toggle-theme">🌙</button>
     <header class="header">
-        <h1>
-            <img src="/static/img/escudo.ico" alt="Escudo" class="icon" style="width: 60px; height: 60px; vertical-align: middle;">
-            Detector de Phishing
-        </h1>
-        <p>Ferramenta inteligente para identificar emails e URLs suspeitos, protegendo você contra golpes online</p>
+        <div class="header-content">
+            <div class="logo-container">
+                <img src="/static/img/escudo.ico" alt="Escudo" class="icon">
+                <div class="title-container">
+                    <h1>No-Phishing</h1>
+                    <span class="subtitle">Sistema Avançado de Proteção</span>
+                </div>
+            </div>
+            <p class="header-description">
+                <i class="fas fa-shield-alt"></i>
+                Ferramenta inteligente para identificar emails, URLs e mensagens suspeitas, 
+                protegendo você contra golpes de engenharia social, phishing e ataques cibernéticos
+            </p>
+            </div>
+        </div>
     </header>
 
     <main class="container">
-        <div class="card">
+        <div class="card analysis-card">
+            <div class="card-header">
+                <h2><i class="fas fa-search"></i> Análise Inteligente</h2>
+                <p>Cole o conteúdo suspeito para análise em tempo real</p>
+            </div>
+            
             <form id="analysisForm" novalidate>
                 <div class="input-group">
                     <label for="messageInput" class="input-label">
                         <i class="fas fa-envelope" aria-hidden="true"></i>
-                        Cole aqui o texto do email, mensagem ou URL para análise
+                        Conteúdo para Análise
                     </label>
                     <div class="textarea-container">
                         <textarea 
                             id="messageInput" 
                             class="input-textarea"
-                            placeholder="Exemplo: 'Parabéns! Você ganhou um prêmio de R$ 10.000! Clique em https://site-suspeito.com para resgatar seu prêmio agora mesmo!'"
+                            placeholder="Cole aqui o texto do email, mensagem, URL ou qualquer conteúdo suspeito para análise detalhada..."
                             maxlength="5000"
                             required
                             aria-describedby="char-counter"
@@ -42,10 +57,42 @@
                     </div>
                 </div>
 
+                <div class="analysis-options">
+                    <div class="option-group">
+                        <label class="option-label">
+                            <input type="checkbox" id="deepAnalysis" checked>
+                            <span class="checkmark"></span>
+                            <i class="fas fa-brain"></i>
+                            Análise Profunda
+                        </label>
+                        <span class="option-description">Detecção avançada de golpes e padrões suspeitos</span>
+                    </div>
+                    
+                    <div class="option-group">
+                        <label class="option-label">
+                            <input type="checkbox" id="urlAnalysis" checked>
+                            <span class="checkmark"></span>
+                            <i class="fas fa-link"></i>
+                            Análise de URLs
+                        </label>
+                        <span class="option-description">Verificação de domínios e links suspeitos</span>
+                    </div>
+                    
+                    <div class="option-group">
+                        <label class="option-label">
+                            <input type="checkbox" id="socialEngineering" checked>
+                            <span class="checkmark"></span>
+                            <i class="fas fa-user-secret"></i>
+                            Engenharia Social
+                        </label>
+                        <span class="option-description">Detecção de manipulação psicológica</span>
+                    </div>
+                </div>
+
                 <button type="submit" class="analyze-btn" id="analyzeBtn">
                     <span class="btn-text">
-                        <i class="fas fa-search" aria-hidden="true"></i>
-                        Analisar Mensagem
+                        <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                        Iniciar Análise de Segurança
                     </span>
                     <div class="spinner" id="spinner" aria-hidden="true"></div>
                 </button>
@@ -53,45 +100,73 @@
         </div>
 
         <div class="card results" id="results" role="region" aria-label="Resultados da análise">
+            <div class="results-header">
+                <h2><i class="fas fa-chart-line"></i> Resultados da Análise</h2>
+                <div class="analysis-timestamp" id="analysisTimestamp"></div>
+            </div>
+
             <div id="riskIndicator" class="risk-indicator" role="alert">
                 <div class="risk-score">
                     <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
                     <span id="riskText">Analisando...</span>
                 </div>
-            </div>
-
-            <div class="results-section">
-                <h2 class="results-title">
-                    <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
-                    Palavras Suspeitas Encontradas
-                </h2>
-                <div class="results-list">
-                    <ul id="suspiciousWordsList" aria-label="Lista de palavras suspeitas">
-                        <li class="empty-state">Nenhuma palavra suspeita encontrada</li>
-                    </ul>
+                <div class="risk-details">
+                    <div class="risk-meter">
+                        <div class="meter-fill" id="meterFill"></div>
+                    </div>
+                    <div class="risk-category" id="riskCategory"></div>
                 </div>
             </div>
 
-            <div class="results-section">
-                <h2 class="results-title">
-                    <i class="fas fa-globe" aria-hidden="true"></i>
-                    Domínios Suspeitos Encontrados
-                </h2>
-                <div class="results-list">
-                    <ul id="suspiciousDomainsList" aria-label="Lista de domínios suspeitos">
-                        <li class="empty-state">Nenhum domínio suspeito encontrado</li>
-                    </ul>
+            <div class="results-grid">
+                <div class="results-section">
+                    <h3 class="results-title">
+                        <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
+                        Palavras Suspeitas
+                        <span class="section-badge" id="wordsBadge">0</span>
+                    </h3>
+                    <div class="results-list">
+                        <ul id="suspiciousWordsList" aria-label="Lista de palavras suspeitas">
+                            <li class="empty-state">Nenhuma palavra suspeita encontrada</li>
+                        </ul>
+                    </div>
                 </div>
-            </div>
 
-            <div class="results-section" id="recommendationsSection" style="display: none;">
-                <h2 class="results-title">
-                    <i class="fas fa-lightbulb" aria-hidden="true"></i>
-                    Recomendações de Segurança
-                </h2>
-                <div class="results-list">
-                    <ul id="recommendationsList" aria-label="Lista de recomendações">
-                    </ul>
+                <div class="results-section">
+                    <h3 class="results-title">
+                        <i class="fas fa-globe" aria-hidden="true"></i>
+                        Domínios Suspeitos
+                        <span class="section-badge" id="domainsBadge">0</span>
+                    </h3>
+                    <div class="results-list">
+                        <ul id="suspiciousDomainsList" aria-label="Lista de domínios suspeitos">
+                            <li class="empty-state">Nenhum domínio suspeito encontrado</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="results-section" id="recommendationsSection" style="display: none;">
+                    <h3 class="results-title">
+                        <i class="fas fa-lightbulb" aria-hidden="true"></i>
+                        Recomendações de Segurança
+                        <span class="section-badge" id="recommendationsBadge">0</span>
+                    </h3>
+                    <div class="results-list">
+                        <ul id="recommendationsList" aria-label="Lista de recomendações">
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="results-section" id="threatDetailsSection" style="display: none;">
+                    <h3 class="results-title">
+                        <i class="fas fa-bug" aria-hidden="true"></i>
+                        Detalhes da Ameaça
+                        <span class="section-badge" id="threatsBadge">0</span>
+                    </h3>
+                    <div class="results-list">
+                        <ul id="threatDetailsList" aria-label="Lista de detalhes da ameaça">
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>

@@ -138,7 +138,7 @@ Copiar
 Marcas Protegidas: 10+
 TLDs Perigosos: 15+
 Palavras Suspeitas: 100+
-Padrões de Golpe: 50+
+Padrões de Golpe: 200+
 Tempo de Análise: <1 segundo
 Privacidade: 100% local
 
