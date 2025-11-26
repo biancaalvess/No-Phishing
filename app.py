@@ -29,6 +29,8 @@ url_analyzer = URLAnalyzer()
 reputation_checker = ReputationChecker()
 
 # Função auxiliar para executar código assíncrono em rotas síncronas do Flask
+
+
 def run_async(coro):
     """Executa uma corrotina assíncrona em uma rota síncrona do Flask"""
     try:
@@ -60,22 +62,23 @@ def verificar_mensagem():
         if not mensagem:
             return jsonify({'erro': 'Mensagem vazia'}), 400
 
-        logger.info(f"🔍 Iniciando análise inteligente para: {mensagem[:50]}...")
+        logger.info(
+            f"🔍 Iniciando análise inteligente para: {mensagem[:50]}...")
 
         # Função assíncrona interna para fazer todas as análises
         async def analisar_mensagem():
             # 1. Classificação via "IA" (MLClassifier)
             # O ml_classifier.py usa pesos e lógica avançada localmente (Grátis)
             ml_result = await ml_classifier.classify_email(mensagem)
-            
+
             # 2. Análise de conteúdo (EmailAnalyzer)
             content_result = await email_analyzer.analyze_content(mensagem)
-            
+
             # 3. Análise de URLs (se houver)
             urls = email_analyzer.extract_urls(mensagem)
             url_details = []
             max_url_score = 0
-            
+
             for url in urls[:3]:  # Analisa as 3 primeiras URLs para não demorar
                 # Análise paralela de estrutura e reputação da URL
                 struct_res, rep_res, url_ml = await asyncio.gather(
@@ -83,15 +86,15 @@ def verificar_mensagem():
                     reputation_checker.check_url_reputation(url),
                     ml_classifier.classify_url(url)
                 )
-                
+
                 # Calcula risco da URL
                 url_risk = max(
-                    struct_res.get('risk_score', 0), 
+                    struct_res.get('risk_score', 0),
                     rep_res.get('risk_score', 0),
                     url_ml.get('risk_score', 0)
                 )
                 max_url_score = max(max_url_score, url_risk)
-                
+
                 url_details.append({
                     'url': url,
                     'risco': url_risk,
@@ -101,21 +104,23 @@ def verificar_mensagem():
             # --- CÁLCULO FINAL DO SCORE ---
             # Combina a "IA", análise de texto e URLs
             score_final = 0
-            
-            # Pesos: 
+
+            # Pesos:
             # ML (IA) = 30%
             # Análise de Texto (Urgência/Engenharia Social) = 40%
             # URLs Maliciosas = 30%
-            
+
             score_ml = ml_result.get('risk_score', 0)
             score_content = content_result.get('risk_score', 0)
-            
-            score_final = (score_ml * 0.3) + (score_content * 0.4) + (max_url_score * 0.3)
-            
+
+            score_final = (score_ml * 0.3) + \
+                (score_content * 0.4) + (max_url_score * 0.3)
+
             # Ajustes finos
             if max_url_score > 90:
-                score_final = max(score_final, 95)  # URL perigosa sobe o risco total
-            
+                # URL perigosa sobe o risco total
+                score_final = max(score_final, 95)
+
             score_final = min(round(score_final), 100)
 
             # Determina nível de risco e texto
@@ -134,21 +139,25 @@ def verificar_mensagem():
             # Prepara as recomendações baseadas na IA
             recomendacoes = []
             if score_final > 40:
-                recomendacoes.append("⚠️ Cuidado: Nosso sistema inteligente detectou padrões suspeitos.")
+                recomendacoes.append(
+                    "⚠️ Cuidado: Nosso sistema inteligente detectou padrões suspeitos.")
             if ml_result.get('feature_scores', {}).get('urgency', 0) > 10:
-                recomendacoes.append("🕒 Atenção: A mensagem tenta criar senso de urgência falso.")
+                recomendacoes.append(
+                    "🕒 Atenção: A mensagem tenta criar senso de urgência falso.")
             if ml_result.get('feature_scores', {}).get('credential', 0) > 10:
-                recomendacoes.append("🔒 Alerta: Pedido de senha ou dados sensíveis detectado.")
+                recomendacoes.append(
+                    "🔒 Alerta: Pedido de senha ou dados sensíveis detectado.")
             if not recomendacoes:
-                recomendacoes.append("✅ Nenhuma ameaça óbvia detectada, mas mantenha a atenção.")
+                recomendacoes.append(
+                    "✅ Nenhuma ameaça óbvia detectada, mas mantenha a atenção.")
 
             # Monta resposta compatível com seu front-end
             response_data = {
                 'score_risco': score_final,
                 'nivel_risco': nivel_risco,
                 'nivel_risco_texto': texto_risco,
-                'palavras_suspeitas': content_result.get('urgency_keywords_found', []) + 
-                                      [f"Padrão ML: {ml_result.get('classification', '')}"],
+                'palavras_suspeitas': content_result.get('urgency_keywords_found', []) +
+                [f"Padrão ML: {ml_result.get('classification', '')}"],
                 'dominios_suspeitos': [u['url'] for u in url_details if u['risco'] > 50],
                 'recomendacoes': recomendacoes,
                 'detalhes': {
@@ -162,9 +171,10 @@ def verificar_mensagem():
 
         # Executa a análise assíncrona
         resultado = run_async(analisar_mensagem())
-        
-        logger.info(f"✅ Resultado: {resultado['nivel_risco_texto']} - Score: {resultado['score_risco']}")
-        
+
+        logger.info(
+            f"✅ Resultado: {resultado['nivel_risco_texto']} - Score: {resultado['score_risco']}")
+
         return jsonify(resultado)
 
     except Exception as e:
@@ -215,6 +225,7 @@ def internal_error(error):
 # As pastas templates e static já devem estar no Git
 if __name__ == '__main__':
     logger.info("🚀 SISTEMA INICIADO COM IA ATIVADA")
-    logger.info("✅ Módulos avançados carregados: ML, Email Analyzer, URL Analyzer, Reputation Checker")
+    logger.info(
+        "✅ Módulos avançados carregados: ML, Email Analyzer, URL Analyzer, Reputation Checker")
     logger.info("🌐 Sistema compatível com Vercel Serverless")
     app.run(debug=True, host='127.0.0.1', port=5000)
