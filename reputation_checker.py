@@ -3,10 +3,24 @@ import hashlib
 from typing import Dict, List, Any
 from urllib.parse import urlparse
 import json
+import os
+import re
+import aiohttp
+from dotenv import load_dotenv
+
+# Carrega variáveis de ambiente do arquivo .env
+load_dotenv()
 
 class ReputationChecker:
     def __init__(self):
-        # Simulação de bases de dados de reputação
+        # Carrega chaves de API do ambiente
+        self.virustotal_api_key = os.getenv('VIRUSTOTAL_API_KEY', '')
+        self.google_safebrowsing_api_key = os.getenv('GOOGLE_SAFEBROWSING_API_KEY', '')
+        self.phishtank_api_key = os.getenv('PHISHTANK_API_KEY', '')
+        self.urlscan_api_key = os.getenv('URLSCAN_API_KEY', '')
+        self.abuseipdb_api_key = os.getenv('ABUSEIPDB_API_KEY', '')
+        
+        # Simulação de bases de dados de reputação (fallback)
         self.blacklisted_domains = {
             'phishing-site.tk', 'fake-bank.ml', 'scam-alert.ga',
             'malware-host.cf', 'suspicious-login.click'
@@ -17,25 +31,11 @@ class ReputationChecker:
             'confirm-identity', 'urgent-action', 'suspended-account'
         ]
         
-        # Simulação de feeds de threat intelligence
-        self.threat_feeds = {
-            'phishing_urls': [
-                'phishing-example.com/login',
-                'fake-paypal.tk/secure',
-                'bank-verification.ml/update'
-            ],
-            'malware_domains': [
-                'malware-host.cf',
-                'trojan-download.tk',
-                'virus-site.ml'
-            ]
-        }
-        
         # Cache para evitar consultas repetidas
         self.reputation_cache = {}
     
     async def check_url_reputation(self, url: str) -> Dict[str, Any]:
-        """Verifica reputação de uma URL"""
+        """Verifica reputação de uma URL usando APIs reais"""
         # Verifica cache primeiro
         url_hash = hashlib.md5(url.encode()).hexdigest()
         if url_hash in self.reputation_cache:
@@ -50,35 +50,33 @@ class ReputationChecker:
             threats_found = []
             sources = []
             
-            # Verifica listas negras
-            blacklist_result = await self._check_blacklists(domain, full_path)
-            risk_score += blacklist_result['score']
-            threats_found.extend(blacklist_result['threats'])
-            sources.extend(blacklist_result['sources'])
+            # Executa verificações em paralelo (quando possível)
+            results = await asyncio.gather(
+                self._check_virustotal(url),
+                self._check_google_safebrowsing(url),
+                self._check_phishtank(url),
+                self._check_urlscan(url),
+                self._check_blacklists(domain, full_path),
+                self._check_suspicious_patterns(url),
+                self._check_domain_history(domain),
+                return_exceptions=True
+            )
             
-            # Verifica feeds de threat intelligence
-            threat_intel_result = await self._check_threat_intelligence(url, domain)
-            risk_score += threat_intel_result['score']
-            threats_found.extend(threat_intel_result['threats'])
-            sources.extend(threat_intel_result['sources'])
-            
-            # Verifica padrões suspeitos
-            pattern_result = await self._check_suspicious_patterns(url)
-            risk_score += pattern_result['score']
-            threats_found.extend(pattern_result['threats'])
-            
-            # Verifica histórico de domínio (simulado)
-            history_result = await self._check_domain_history(domain)
-            risk_score += history_result['score']
-            threats_found.extend(history_result['threats'])
+            # Processa resultados
+            for result in results:
+                if isinstance(result, dict):
+                    risk_score += result.get('score', 0)
+                    threats_found.extend(result.get('threats', []))
+                    sources.extend(result.get('sources', []))
             
             result = {
                 'risk_score': min(risk_score, 100),
                 'threats_found': threats_found,
                 'sources': list(set(sources)),
-                'is_blacklisted': blacklist_result['score'] > 0,
+                'is_blacklisted': risk_score > 50,
                 'threat_categories': self._categorize_threats(threats_found),
-                'last_checked': self._get_current_timestamp()
+                'last_checked': self._get_current_timestamp(),
+                'apis_used': [s for s in sources if any(api in s for api in ['VirusTotal', 'Google', 'PhishTank', 'URLScan'])]
             }
             
             # Armazena no cache
@@ -95,6 +93,211 @@ class ReputationChecker:
                 'threat_categories': ['error'],
                 'last_checked': self._get_current_timestamp()
             }
+    
+    async def _check_virustotal(self, url: str) -> Dict[str, Any]:
+        """Verifica URL no VirusTotal (70+ antivírus)"""
+        if not self.virustotal_api_key:
+            return {'score': 0, 'threats': [], 'sources': []}
+        
+        try:
+            # Hash da URL para VirusTotal
+            url_hash = hashlib.sha256(url.encode()).hexdigest()
+            
+            async with aiohttp.ClientSession() as session:
+                # Primeiro, tenta obter o report existente
+                headers = {'x-apikey': self.virustotal_api_key}
+                report_url = f'https://www.virustotal.com/api/v3/urls/{url_hash}'
+                
+                async with session.get(report_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        attributes = data.get('data', {}).get('attributes', {})
+                        
+                        # Conta quantos antivírus detectaram como malicioso
+                        last_analysis_stats = attributes.get('last_analysis_stats', {})
+                        malicious_count = last_analysis_stats.get('malicious', 0)
+                        suspicious_count = last_analysis_stats.get('suspicious', 0)
+                        
+                        if malicious_count > 0 or suspicious_count > 0:
+                            score = min(malicious_count * 15 + suspicious_count * 5, 100)
+                            return {
+                                'score': score,
+                                'threats': [f'Detectado por {malicious_count} antivírus como malicioso'],
+                                'sources': ['VirusTotal']
+                            }
+                    elif response.status == 404:
+                        # URL não está no banco, pode submeter para análise
+                        # Por enquanto, retorna score baixo
+                        return {'score': 0, 'threats': [], 'sources': []}
+        
+        except Exception as e:
+            # Em caso de erro, não aumenta o score (fallback silencioso)
+            pass
+        
+        return {'score': 0, 'threats': [], 'sources': []}
+    
+    async def _check_google_safebrowsing(self, url: str) -> Dict[str, Any]:
+        """Verifica URL no Google Safe Browsing (mesma tecnologia do Chrome)"""
+        if not self.google_safebrowsing_api_key:
+            return {'score': 0, 'threats': [], 'sources': []}
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                api_url = f'https://safebrowsing.googleapis.com/v4/threatMatches:find?key={self.google_safebrowsing_api_key}'
+                
+                payload = {
+                    'client': {
+                        'clientId': 'no-phishing',
+                        'clientVersion': '1.0.0'
+                    },
+                    'threatInfo': {
+                        'threatTypes': ['MALWARE', 'SOCIAL_ENGINEERING', 'UNWANTED_SOFTWARE'],
+                        'platformTypes': ['ANY_PLATFORM'],
+                        'threatEntryTypes': ['URL'],
+                        'threatEntries': [{'url': url}]
+                    }
+                }
+                
+                async with session.post(api_url, json=payload, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        
+                        if 'matches' in data and len(data['matches']) > 0:
+                            threat_types = [match.get('threatType', '') for match in data['matches']]
+                            score = 90 if 'SOCIAL_ENGINEERING' in threat_types else 70
+                            
+                            return {
+                                'score': score,
+                                'threats': [f'Google Safe Browsing detectou: {", ".join(threat_types)}'],
+                                'sources': ['Google Safe Browsing']
+                            }
+        
+        except Exception as e:
+            pass
+        
+        return {'score': 0, 'threats': [], 'sources': []}
+    
+    async def _check_phishtank(self, url: str) -> Dict[str, Any]:
+        """Verifica URL no PhishTank (banco de dados colaborativo de phishing)"""
+        if not self.phishtank_api_key:
+            return {'score': 0, 'threats': [], 'sources': []}
+        
+        try:
+            # PhishTank requer hash MD5 da URL
+            url_hash = hashlib.md5(url.encode()).hexdigest()
+            
+            async with aiohttp.ClientSession() as session:
+                api_url = f'https://checkurl.phishtank.com/checkurl/'
+                headers = {'User-Agent': 'No-Phishing/1.0'}
+                data = {
+                    'url': url,
+                    'format': 'json',
+                    'app_key': self.phishtank_api_key
+                }
+                
+                async with session.post(api_url, data=data, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                    if response.status == 200:
+                        result = await response.json()
+                        
+                        if result.get('results', {}).get('in_database'):
+                            phish_details = result.get('results', {})
+                            verified = phish_details.get('verified', 'no')
+                            
+                            if verified == 'yes':
+                                return {
+                                    'score': 95,
+                                    'threats': ['URL confirmada como phishing no PhishTank'],
+                                    'sources': ['PhishTank']
+                                }
+                            else:
+                                return {
+                                    'score': 60,
+                                    'threats': ['URL reportada como phishing no PhishTank (não verificado)'],
+                                    'sources': ['PhishTank']
+                                }
+        
+        except Exception as e:
+            pass
+        
+        return {'score': 0, 'threats': [], 'sources': []}
+    
+    async def _check_urlscan(self, url: str) -> Dict[str, Any]:
+        """Verifica URL no URLScan.io (análise técnica detalhada)"""
+        if not self.urlscan_api_key:
+            return {'score': 0, 'threats': [], 'sources': []}
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                # Primeiro, verifica se já existe um scan
+                search_url = f'https://urlscan.io/api/v1/search/?q=url:{url}'
+                headers = {'API-Key': self.urlscan_api_key} if self.urlscan_api_key else {}
+                
+                async with session.get(search_url, headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        results = data.get('results', [])
+                        
+                        if results:
+                            # Pega o resultado mais recente
+                            latest = results[0]
+                            verdict = latest.get('verdicts', {})
+                            
+                            if verdict.get('overall', {}).get('malicious'):
+                                score = 85
+                                threats = ['URLScan detectou atividade maliciosa']
+                                
+                                # Adiciona detalhes técnicos se disponíveis
+                                if 'ip' in latest:
+                                    threats.append(f'IP do servidor: {latest.get("ip")}')
+                                
+                                return {
+                                    'score': score,
+                                    'threats': threats,
+                                    'sources': ['URLScan.io']
+                                }
+        
+        except Exception as e:
+            pass
+        
+        return {'score': 0, 'threats': [], 'sources': []}
+    
+    async def _check_abuseipdb(self, ip: str) -> Dict[str, Any]:
+        """Verifica IP no AbuseIPDB (reputação de endereços IP)"""
+        if not self.abuseipdb_api_key:
+            return {'score': 0, 'threats': [], 'sources': []}
+        
+        try:
+            async with aiohttp.ClientSession() as session:
+                api_url = 'https://api.abuseipdb.com/api/v2/check'
+                headers = {
+                    'Key': self.abuseipdb_api_key,
+                    'Accept': 'application/json'
+                }
+                params = {
+                    'ipAddress': ip,
+                    'maxAgeInDays': 90,
+                    'verbose': ''
+                }
+                
+                async with session.get(api_url, headers=headers, params=params, timeout=aiohttp.ClientTimeout(total=10)) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        result = data.get('data', {})
+                        
+                        abuse_confidence = result.get('abuseConfidencePercentage', 0)
+                        
+                        if abuse_confidence > 50:
+                            score = min(abuse_confidence, 100)
+                            return {
+                                'score': score,
+                                'threats': [f'IP com {abuse_confidence}% de confiança de abuso'],
+                                'sources': ['AbuseIPDB']
+                            }
+        
+        except Exception as e:
+            pass
+        
+        return {'score': 0, 'threats': [], 'sources': []}
     
     async def check_domain_reputation(self, domain: str) -> Dict[str, Any]:
         """Verifica reputação específica de um domínio"""
@@ -140,7 +343,7 @@ class ReputationChecker:
         return reputation_data
     
     async def _check_blacklists(self, domain: str, full_path: str) -> Dict[str, Any]:
-        """Verifica listas negras conhecidas"""
+        """Verifica listas negras locais (fallback)"""
         score = 0
         threats = []
         sources = []
@@ -148,53 +351,8 @@ class ReputationChecker:
         # Verifica domínio em blacklist
         if domain in self.blacklisted_domains:
             score += 50
-            threats.append(f'Domínio {domain} em lista negra')
+            threats.append(f'Domínio {domain} em lista negra local')
             sources.append('Internal Blacklist')
-        
-        # Verifica URL completa em feeds de phishing
-        for phishing_url in self.threat_feeds['phishing_urls']:
-            if phishing_url in full_path:
-                score += 40
-                threats.append(f'URL corresponde a padrão de phishing conhecido')
-                sources.append('Phishing Feed')
-        
-        # Verifica domínio em feeds de malware
-        if domain in self.threat_feeds['malware_domains']:
-            score += 60
-            threats.append(f'Domínio {domain} associado a malware')
-            sources.append('Malware Feed')
-        
-        return {
-            'score': score,
-            'threats': threats,
-            'sources': sources
-        }
-    
-    async def _check_threat_intelligence(self, url: str, domain: str) -> Dict[str, Any]:
-        """Verifica feeds de threat intelligence"""
-        score = 0
-        threats = []
-        sources = []
-        
-        # Simula consulta a feeds de threat intelligence
-        # Em implementação real, consultaria APIs como VirusTotal, URLVoid, etc.
-        
-        # Verifica padrões conhecidos de campanhas de phishing
-        phishing_campaigns = [
-            'banking-phish-2024', 'paypal-scam-wave', 'crypto-theft-campaign'
-        ]
-        
-        for campaign in phishing_campaigns:
-            if any(keyword in url.lower() for keyword in campaign.split('-')):
-                score += 25
-                threats.append(f'URL pode estar relacionada à campanha: {campaign}')
-                sources.append('Threat Intelligence')
-        
-        # Simula verificação de reputação de IP (se aplicável)
-        if self._is_ip_in_url(url):
-            score += 30
-            threats.append('URL usa endereço IP em vez de domínio')
-            sources.append('IP Reputation')
         
         return {
             'score': score,
@@ -220,7 +378,7 @@ class ReputationChecker:
                 score += 15
                 threats.append(f'Padrão suspeito detectado: {pattern}')
         
-        # URLs com muitos redirecionamentos (simulado)
+        # URLs com muitos redirecionamentos
         if 'redirect' in url_lower or 'goto' in url_lower:
             score += 20
             threats.append('URL contém redirecionamento suspeito')
@@ -240,15 +398,6 @@ class ReputationChecker:
         score = 0
         threats = []
         
-        # Simula verificação de histórico
-        # Em implementação real, consultaria bases de dados históricas
-        
-        # Domínios com histórico de abuse
-        abuse_history = ['previous-scam.tk', 'old-phishing.ml']
-        if domain in abuse_history:
-            score += 35
-            threats.append('Domínio com histórico de atividades maliciosas')
-        
         # Verifica se domínio foi registrado recentemente
         # (simulado baseado em TLD)
         suspicious_tlds = ['.tk', '.ml', '.ga', '.cf']
@@ -263,9 +412,6 @@ class ReputationChecker:
     
     async def _get_domain_age(self, domain: str) -> int:
         """Simula obtenção da idade do domínio"""
-        # Em implementação real, consultaria WHOIS
-        # Por agora, simula baseado em características
-        
         if any(domain.endswith(tld) for tld in ['.tk', '.ml', '.ga', '.cf']):
             return 15  # TLDs suspeitos tendem a ser novos
         
@@ -276,9 +422,6 @@ class ReputationChecker:
     
     async def _check_ssl_certificate(self, domain: str) -> Dict[str, Any]:
         """Simula verificação de certificado SSL"""
-        # Em implementação real, verificaria o certificado SSL
-        
-        # Simula baseado em características do domínio
         suspicious_tlds = ['.tk', '.ml', '.ga', '.cf']
         
         if any(domain.endswith(tld) for tld in suspicious_tlds):
@@ -298,7 +441,6 @@ class ReputationChecker:
     
     def _is_ip_in_url(self, url: str) -> bool:
         """Verifica se URL contém endereço IP"""
-        import re
         ip_pattern = r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'
         return bool(re.search(ip_pattern, url))
     
